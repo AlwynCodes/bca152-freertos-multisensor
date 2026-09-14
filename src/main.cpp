@@ -1,14 +1,12 @@
-#include <stdio.h>
+// src/main.cpp
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_log.h"
-
-static const char *TAG = "MAIN";
+#include "config.h"
+#include "system_tasks.h"
 
 extern "C" void app_main(void) {
-    // Print required initialization messages
-    printf("BCA152 FreeRTOS Multisensor\n");
-    printf("System starting...\n");
+    // 1. Initialize Inter-Task Communication (Queues/Mutexes)
     
-    ESP_LOGI(TAG, "System initialization complete.");
+    // 2. Launch FreeRTOS Tasks
+    xTaskCreatePinToCore(SensorTask, "SensorTask", TASK_STACK_SIZE, NULL, SENSOR_TASK_PRIO, NULL, 0);
 }
