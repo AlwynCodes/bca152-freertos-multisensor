@@ -1,18 +1,6 @@
-// src/system_tasks.cpp
-#include "system_tasks.h"
-#include "sensors.h"
-#include "config.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#ifndef SYSTEM_TASKS_H
+#define SYSTEM_TASKS_H
 
-void SensorTask(void *pvParameters) {
-    SensorData_t data;
-    init_sensors();
+void create_system_tasks(void);
 
-    for (;;) {
-        if (read_sensors(&data)) {
-            // Process or send data to FreeRTOS Queue
-        }
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
-}
+#endif
