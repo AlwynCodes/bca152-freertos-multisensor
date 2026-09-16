@@ -2,24 +2,50 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
-#include "sensors.h"
 
-static const char *TAG = "MAIN";
+static const char *TAG = "FREE_RTOS";
 
-void SensorTask(void *pvParameters) {
-    SensorData_t sensorData;
-    init_sensors();
+// Task A
+void TaskA(void *pvParameters)
+{
+    while (1)
+    {
+        ESP_LOGI(TAG, "Task A running");
 
-    for (;;) {
-        if (read_sensors(&sensorData)) {
-            ESP_LOGI(TAG, "Temp: %.1f C | Hum: %.1f %% | Light ADC: %d",
-                     sensorData.temperature, sensorData.humidity, sensorData.light_level);
-        }
+        // Block for 1 second
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
+
+// Task B
+void TaskB(void *pvParameters)
+{
+    while (1)
+    {
+        ESP_LOGI(TAG, "Task B running");
+
+        // Block for 2 seconds
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
 
-extern "C" void app_main(void) {
-    ESP_LOGI(TAG, "Starting Sensor Task...");
-    xTaskCreatePinToCore(SensorTask, "SensorTask", 3072, NULL, 2, NULL, 0);
+extern "C" void app_main(void)
+{
+    xTaskCreate(
+        TaskA,          // Task function
+        "Task A",       // Task name
+        2048,           // Stack size
+        NULL,           // Parameter
+        2,              // Priority
+        NULL            // Task handle
+    );
+
+    xTaskCreate(
+        TaskB,
+        "Task B",
+        2048,
+        NULL,
+        2,
+        NULL
+    );
 }
