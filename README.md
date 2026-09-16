@@ -35,7 +35,8 @@ The project demonstrates practical use of:
 
 ### 1. Wokwi Circuit
 
-(ADD HERE)
+<img width="851" height="635" alt="image" src="https://github.com/user-attachments/assets/badabf49-18c7-4ef5-aa9a-12c016bbcc8d" />
+
 
 *Full wiring of the ESP32 with the DHT22, LDR, PIR, rotary encoder, SSD1306 OLED, and buzzer, as simulated in Wokwi.*
 
@@ -162,7 +163,7 @@ stateDiagram-v2
 
 ### 5. Finished System Screenshot
 
-(ADD HERE)
+(NOT DONE YET)
 
 *The complete simulation running in Wokwi with live sensor readings on the OLED and the serial console showing startup and telemetry logs.*
 
