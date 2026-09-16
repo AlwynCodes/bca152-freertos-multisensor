@@ -1,4 +1,31 @@
 #include "display.h"
+
+#ifdef PIO_UNIT_TESTING
+
+DisplayMode nextDisplayMode(DisplayMode mode)
+{
+    if (mode == DISPLAY_MOTION) {
+        return DISPLAY_TEMPERATURE;
+    }
+
+    return static_cast<DisplayMode>(
+        static_cast<int>(mode) + 1
+    );
+}
+
+DisplayMode previousDisplayMode(DisplayMode mode)
+{
+    if (mode == DISPLAY_TEMPERATURE) {
+        return DISPLAY_MOTION;
+    }
+
+    return static_cast<DisplayMode>(
+        static_cast<int>(mode) - 1
+    );
+}
+
+#else
+
 #include "config.h"
 
 #include "driver/i2c_master.h"
@@ -18,65 +45,266 @@ static constexpr uint8_t OLED_PAGES = 8;
 
 static uint8_t framebuffer[OLED_WIDTH * OLED_PAGES];
 
-/*
- * Minimal 5x7 font used by the OLED display.
- * Characters required by the room-monitoring display are included.
- */
-static void get_glyph(char character, uint8_t glyph[5])
+static void get_glyph(
+    char character,
+    uint8_t glyph[5]
+)
 {
     memset(glyph, 0, 5);
 
     switch (character) {
-        case 'A': glyph[0]=0x7E; glyph[1]=0x11; glyph[2]=0x11; glyph[3]=0x11; glyph[4]=0x7E; break;
-        case 'B': glyph[0]=0x7F; glyph[1]=0x49; glyph[2]=0x49; glyph[3]=0x49; glyph[4]=0x36; break;
-        case 'C': glyph[0]=0x3E; glyph[1]=0x41; glyph[2]=0x41; glyph[3]=0x41; glyph[4]=0x22; break;
-        case 'D': glyph[0]=0x7F; glyph[1]=0x41; glyph[2]=0x41; glyph[3]=0x22; glyph[4]=0x1C; break;
-        case 'E': glyph[0]=0x7F; glyph[1]=0x49; glyph[2]=0x49; glyph[3]=0x49; glyph[4]=0x41; break;
-        case 'F': glyph[0]=0x7F; glyph[1]=0x09; glyph[2]=0x09; glyph[3]=0x09; glyph[4]=0x01; break;
-        case 'G': glyph[0]=0x3E; glyph[1]=0x41; glyph[2]=0x49; glyph[3]=0x49; glyph[4]=0x7A; break;
-        case 'H': glyph[0]=0x7F; glyph[1]=0x08; glyph[2]=0x08; glyph[3]=0x08; glyph[4]=0x7F; break;
-        case 'I': glyph[0]=0x00; glyph[1]=0x41; glyph[2]=0x7F; glyph[3]=0x41; glyph[4]=0x00; break;
-        case 'J': glyph[0]=0x20; glyph[1]=0x40; glyph[2]=0x41; glyph[3]=0x3F; glyph[4]=0x01; break;
-        case 'K': glyph[0]=0x7F; glyph[1]=0x08; glyph[2]=0x14; glyph[3]=0x22; glyph[4]=0x41; break;
-        case 'L': glyph[0]=0x7F; glyph[1]=0x40; glyph[2]=0x40; glyph[3]=0x40; glyph[4]=0x40; break;
-        case 'M': glyph[0]=0x7F; glyph[1]=0x02; glyph[2]=0x0C; glyph[3]=0x02; glyph[4]=0x7F; break;
-        case 'N': glyph[0]=0x7F; glyph[1]=0x04; glyph[2]=0x08; glyph[3]=0x10; glyph[4]=0x7F; break;
-        case 'O': glyph[0]=0x3E; glyph[1]=0x41; glyph[2]=0x41; glyph[3]=0x41; glyph[4]=0x3E; break;
-        case 'P': glyph[0]=0x7F; glyph[1]=0x09; glyph[2]=0x09; glyph[3]=0x09; glyph[4]=0x06; break;
-        case 'Q': glyph[0]=0x3E; glyph[1]=0x41; glyph[2]=0x51; glyph[3]=0x21; glyph[4]=0x5E; break;
-        case 'R': glyph[0]=0x7F; glyph[1]=0x09; glyph[2]=0x19; glyph[3]=0x29; glyph[4]=0x46; break;
-        case 'S': glyph[0]=0x46; glyph[1]=0x49; glyph[2]=0x49; glyph[3]=0x49; glyph[4]=0x31; break;
-        case 'T': glyph[0]=0x01; glyph[1]=0x01; glyph[2]=0x7F; glyph[3]=0x01; glyph[4]=0x01; break;
-        case 'U': glyph[0]=0x3F; glyph[1]=0x40; glyph[2]=0x40; glyph[3]=0x40; glyph[4]=0x3F; break;
-        case 'V': glyph[0]=0x1F; glyph[1]=0x20; glyph[2]=0x40; glyph[3]=0x20; glyph[4]=0x1F; break;
-        case 'W': glyph[0]=0x3F; glyph[1]=0x40; glyph[2]=0x38; glyph[3]=0x40; glyph[4]=0x3F; break;
-        case 'X': glyph[0]=0x63; glyph[1]=0x14; glyph[2]=0x08; glyph[3]=0x14; glyph[4]=0x63; break;
-        case 'Y': glyph[0]=0x07; glyph[1]=0x08; glyph[2]=0x70; glyph[3]=0x08; glyph[4]=0x07; break;
-        case 'Z': glyph[0]=0x61; glyph[1]=0x51; glyph[2]=0x49; glyph[3]=0x45; glyph[4]=0x43; break;
+        case 'A':
+            glyph[0]=0x7E; glyph[1]=0x11;
+            glyph[2]=0x11; glyph[3]=0x11;
+            glyph[4]=0x7E;
+            break;
 
-        case '0': glyph[0]=0x3E; glyph[1]=0x51; glyph[2]=0x49; glyph[3]=0x45; glyph[4]=0x3E; break;
-        case '1': glyph[0]=0x00; glyph[1]=0x42; glyph[2]=0x7F; glyph[3]=0x40; glyph[4]=0x00; break;
-        case '2': glyph[0]=0x42; glyph[1]=0x61; glyph[2]=0x51; glyph[3]=0x49; glyph[4]=0x46; break;
-        case '3': glyph[0]=0x21; glyph[1]=0x41; glyph[2]=0x45; glyph[3]=0x4B; glyph[4]=0x31; break;
-        case '4': glyph[0]=0x18; glyph[1]=0x14; glyph[2]=0x12; glyph[3]=0x7F; glyph[4]=0x10; break;
-        case '5': glyph[0]=0x27; glyph[1]=0x45; glyph[2]=0x45; glyph[3]=0x45; glyph[4]=0x39; break;
-        case '6': glyph[0]=0x3C; glyph[1]=0x4A; glyph[2]=0x49; glyph[3]=0x49; glyph[4]=0x30; break;
-        case '7': glyph[0]=0x01; glyph[1]=0x71; glyph[2]=0x09; glyph[3]=0x05; glyph[4]=0x03; break;
-        case '8': glyph[0]=0x36; glyph[1]=0x49; glyph[2]=0x49; glyph[3]=0x49; glyph[4]=0x36; break;
-        case '9': glyph[0]=0x06; glyph[1]=0x49; glyph[2]=0x49; glyph[3]=0x29; glyph[4]=0x1E; break;
+        case 'B':
+            glyph[0]=0x7F; glyph[1]=0x49;
+            glyph[2]=0x49; glyph[3]=0x49;
+            glyph[4]=0x36;
+            break;
 
-        case ':': glyph[0]=0x00; glyph[1]=0x36; glyph[2]=0x36; glyph[3]=0x00; glyph[4]=0x00; break;
-        case '.': glyph[0]=0x00; glyph[1]=0x60; glyph[2]=0x60; glyph[3]=0x00; glyph[4]=0x00; break;
-        case '%': glyph[0]=0x63; glyph[1]=0x13; glyph[2]=0x08; glyph[3]=0x64; glyph[4]=0x63; break;
-        case '-': glyph[0]=0x08; glyph[1]=0x08; glyph[2]=0x08; glyph[3]=0x08; glyph[4]=0x08; break;
-        case ' ': break;
+        case 'C':
+            glyph[0]=0x3E; glyph[1]=0x41;
+            glyph[2]=0x41; glyph[3]=0x41;
+            glyph[4]=0x22;
+            break;
+
+        case 'D':
+            glyph[0]=0x7F; glyph[1]=0x41;
+            glyph[2]=0x41; glyph[3]=0x22;
+            glyph[4]=0x1C;
+            break;
+
+        case 'E':
+            glyph[0]=0x7F; glyph[1]=0x49;
+            glyph[2]=0x49; glyph[3]=0x49;
+            glyph[4]=0x41;
+            break;
+
+        case 'F':
+            glyph[0]=0x7F; glyph[1]=0x09;
+            glyph[2]=0x09; glyph[3]=0x09;
+            glyph[4]=0x01;
+            break;
+
+        case 'G':
+            glyph[0]=0x3E; glyph[1]=0x41;
+            glyph[2]=0x49; glyph[3]=0x49;
+            glyph[4]=0x7A;
+            break;
+
+        case 'H':
+            glyph[0]=0x7F; glyph[1]=0x08;
+            glyph[2]=0x08; glyph[3]=0x08;
+            glyph[4]=0x7F;
+            break;
+
+        case 'I':
+            glyph[0]=0x00; glyph[1]=0x41;
+            glyph[2]=0x7F; glyph[3]=0x41;
+            glyph[4]=0x00;
+            break;
+
+        case 'J':
+            glyph[0]=0x20; glyph[1]=0x40;
+            glyph[2]=0x41; glyph[3]=0x3F;
+            glyph[4]=0x01;
+            break;
+
+        case 'K':
+            glyph[0]=0x7F; glyph[1]=0x08;
+            glyph[2]=0x14; glyph[3]=0x22;
+            glyph[4]=0x41;
+            break;
+
+        case 'L':
+            glyph[0]=0x7F; glyph[1]=0x40;
+            glyph[2]=0x40; glyph[3]=0x40;
+            glyph[4]=0x40;
+            break;
+
+        case 'M':
+            glyph[0]=0x7F; glyph[1]=0x02;
+            glyph[2]=0x0C; glyph[3]=0x02;
+            glyph[4]=0x7F;
+            break;
+
+        case 'N':
+            glyph[0]=0x7F; glyph[1]=0x04;
+            glyph[2]=0x08; glyph[3]=0x10;
+            glyph[4]=0x7F;
+            break;
+
+        case 'O':
+            glyph[0]=0x3E; glyph[1]=0x41;
+            glyph[2]=0x41; glyph[3]=0x41;
+            glyph[4]=0x3E;
+            break;
+
+        case 'P':
+            glyph[0]=0x7F; glyph[1]=0x09;
+            glyph[2]=0x09; glyph[3]=0x09;
+            glyph[4]=0x06;
+            break;
+
+        case 'Q':
+            glyph[0]=0x3E; glyph[1]=0x41;
+            glyph[2]=0x51; glyph[3]=0x21;
+            glyph[4]=0x5E;
+            break;
+
+        case 'R':
+            glyph[0]=0x7F; glyph[1]=0x09;
+            glyph[2]=0x19; glyph[3]=0x29;
+            glyph[4]=0x46;
+            break;
+
+        case 'S':
+            glyph[0]=0x46; glyph[1]=0x49;
+            glyph[2]=0x49; glyph[3]=0x49;
+            glyph[4]=0x31;
+            break;
+
+        case 'T':
+            glyph[0]=0x01; glyph[1]=0x01;
+            glyph[2]=0x7F; glyph[3]=0x01;
+            glyph[4]=0x01;
+            break;
+
+        case 'U':
+            glyph[0]=0x3F; glyph[1]=0x40;
+            glyph[2]=0x40; glyph[3]=0x40;
+            glyph[4]=0x3F;
+            break;
+
+        case 'V':
+            glyph[0]=0x1F; glyph[1]=0x20;
+            glyph[2]=0x40; glyph[3]=0x20;
+            glyph[4]=0x1F;
+            break;
+
+        case 'W':
+            glyph[0]=0x3F; glyph[1]=0x40;
+            glyph[2]=0x38; glyph[3]=0x40;
+            glyph[4]=0x3F;
+            break;
+
+        case 'X':
+            glyph[0]=0x63; glyph[1]=0x14;
+            glyph[2]=0x08; glyph[3]=0x14;
+            glyph[4]=0x63;
+            break;
+
+        case 'Y':
+            glyph[0]=0x07; glyph[1]=0x08;
+            glyph[2]=0x70; glyph[3]=0x08;
+            glyph[4]=0x07;
+            break;
+
+        case 'Z':
+            glyph[0]=0x61; glyph[1]=0x51;
+            glyph[2]=0x49; glyph[3]=0x45;
+            glyph[4]=0x43;
+            break;
+
+        case '0':
+            glyph[0]=0x3E; glyph[1]=0x51;
+            glyph[2]=0x49; glyph[3]=0x45;
+            glyph[4]=0x3E;
+            break;
+
+        case '1':
+            glyph[0]=0x00; glyph[1]=0x42;
+            glyph[2]=0x7F; glyph[3]=0x40;
+            glyph[4]=0x00;
+            break;
+
+        case '2':
+            glyph[0]=0x42; glyph[1]=0x61;
+            glyph[2]=0x51; glyph[3]=0x49;
+            glyph[4]=0x46;
+            break;
+
+        case '3':
+            glyph[0]=0x21; glyph[1]=0x41;
+            glyph[2]=0x45; glyph[3]=0x4B;
+            glyph[4]=0x31;
+            break;
+
+        case '4':
+            glyph[0]=0x18; glyph[1]=0x14;
+            glyph[2]=0x12; glyph[3]=0x7F;
+            glyph[4]=0x10;
+            break;
+
+        case '5':
+            glyph[0]=0x27; glyph[1]=0x45;
+            glyph[2]=0x45; glyph[3]=0x45;
+            glyph[4]=0x39;
+            break;
+
+        case '6':
+            glyph[0]=0x3C; glyph[1]=0x4A;
+            glyph[2]=0x49; glyph[3]=0x49;
+            glyph[4]=0x30;
+            break;
+
+        case '7':
+            glyph[0]=0x01; glyph[1]=0x71;
+            glyph[2]=0x09; glyph[3]=0x05;
+            glyph[4]=0x03;
+            break;
+
+        case '8':
+            glyph[0]=0x36; glyph[1]=0x49;
+            glyph[2]=0x49; glyph[3]=0x49;
+            glyph[4]=0x36;
+            break;
+
+        case '9':
+            glyph[0]=0x06; glyph[1]=0x49;
+            glyph[2]=0x49; glyph[3]=0x29;
+            glyph[4]=0x1E;
+            break;
+
+        case ':':
+            glyph[0]=0x00; glyph[1]=0x36;
+            glyph[2]=0x36; glyph[3]=0x00;
+            glyph[4]=0x00;
+            break;
+
+        case '.':
+            glyph[0]=0x00; glyph[1]=0x60;
+            glyph[2]=0x60; glyph[3]=0x00;
+            glyph[4]=0x00;
+            break;
+
+        case '%':
+            glyph[0]=0x63; glyph[1]=0x13;
+            glyph[2]=0x08; glyph[3]=0x64;
+            glyph[4]=0x63;
+            break;
+
+        case '-':
+            glyph[0]=0x08; glyph[1]=0x08;
+            glyph[2]=0x08; glyph[3]=0x08;
+            glyph[4]=0x08;
+            break;
+
+        case ' ':
+            break;
 
         default:
             break;
     }
 }
 
-static esp_err_t oled_write(const uint8_t *data, size_t length)
+static esp_err_t oled_write(
+    const uint8_t *data,
+    size_t length
+)
 {
     if (oled_device == nullptr) {
         return ESP_ERR_INVALID_STATE;
@@ -100,7 +328,10 @@ static esp_err_t oled_command(uint8_t command)
     return oled_write(packet, sizeof(packet));
 }
 
-static esp_err_t oled_data(const uint8_t *data, size_t length)
+static esp_err_t oled_data(
+    const uint8_t *data,
+    size_t length
+)
 {
     uint8_t packet[129] = {};
 
@@ -142,7 +373,11 @@ static void oled_draw_char(
     }
 
     uint8_t glyph[5];
-    get_glyph(character, glyph);
+
+    get_glyph(
+        character,
+        glyph
+    );
 
     for (uint8_t column = 0; column < 5; ++column) {
         framebuffer[
@@ -404,3 +639,5 @@ void display_sensor_data(
         value
     );
 }
+
+#endif

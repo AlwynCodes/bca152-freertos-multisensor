@@ -3,34 +3,46 @@
 #include "alarm.h"
 #include "display.h"
 #include "system_state.h"
-
-#include "../src/alarm.cpp"
-#include "../src/display.cpp"
-#include "../src/system_state.cpp"
+#include "config.h"
 
 void test_alarm_below_lower_limit(void)
 {
-    TEST_ASSERT_EQUAL(LOW_TEMPERATURE, evaluateTemperature(17.9f));
+    TEST_ASSERT_EQUAL(
+        LOW_TEMPERATURE,
+        evaluateTemperature(17.9f)
+    );
 }
 
 void test_alarm_at_lower_limit(void)
 {
-    TEST_ASSERT_EQUAL(NORMAL, evaluateTemperature(18.0f));
+    TEST_ASSERT_EQUAL(
+        NORMAL,
+        evaluateTemperature(18.0f)
+    );
 }
 
 void test_alarm_normal_value(void)
 {
-    TEST_ASSERT_EQUAL(NORMAL, evaluateTemperature(25.0f));
+    TEST_ASSERT_EQUAL(
+        NORMAL,
+        evaluateTemperature(25.0f)
+    );
 }
 
 void test_alarm_at_upper_limit(void)
 {
-    TEST_ASSERT_EQUAL(NORMAL, evaluateTemperature(30.0f));
+    TEST_ASSERT_EQUAL(
+        NORMAL,
+        evaluateTemperature(30.0f)
+    );
 }
 
 void test_alarm_above_upper_limit(void)
 {
-    TEST_ASSERT_EQUAL(HIGH_TEMPERATURE, evaluateTemperature(30.1f));
+    TEST_ASSERT_EQUAL(
+        HIGH_TEMPERATURE,
+        evaluateTemperature(30.1f)
+    );
 }
 
 void test_navigation_forward(void)
@@ -113,8 +125,11 @@ void test_state_inactive_with_motion(void)
     );
 }
 
-extern "C" void app_main(void)
+int main(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+
     UNITY_BEGIN();
 
     RUN_TEST(test_alarm_below_lower_limit);
@@ -133,5 +148,5 @@ extern "C" void app_main(void)
     RUN_TEST(test_state_inactive_without_motion);
     RUN_TEST(test_state_inactive_with_motion);
 
-    UNITY_END();
+    return UNITY_END();
 }

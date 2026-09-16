@@ -1,5 +1,23 @@
 #include "alarm.h"
 #include "config.h"
+
+#ifdef PIO_UNIT_TESTING
+
+TemperatureAlarmState evaluateTemperature(float temperature)
+{
+    if (temperature < LOW_TEMPERATURE_LIMIT) {
+        return LOW_TEMPERATURE;
+    }
+
+    if (temperature > HIGH_TEMPERATURE_LIMIT) {
+        return HIGH_TEMPERATURE;
+    }
+
+    return NORMAL;
+}
+
+#else
+
 #include "rtos_objects.h"
 
 #include "driver/gpio.h"
@@ -29,7 +47,11 @@ void init_alarm(void)
     config.intr_type = GPIO_INTR_DISABLE;
 
     gpio_config(&config);
-    gpio_set_level(static_cast<gpio_num_t>(BUZZER_GPIO), 0);
+
+    gpio_set_level(
+        static_cast<gpio_num_t>(BUZZER_GPIO),
+        0
+    );
 }
 
 void alarm_task(void *arg)
@@ -39,7 +61,12 @@ void alarm_task(void *arg)
     SensorData data{};
 
     for (;;) {
-        if (xQueueReceive(alarmQueue, &data, portMAX_DELAY) == pdTRUE) {
+        if (xQueueReceive(
+                alarmQueue,
+                &data,
+                portMAX_DELAY
+            ) == pdTRUE) {
+
             TemperatureAlarmState state =
                 evaluateTemperature(data.temperature);
 
@@ -49,10 +76,18 @@ void alarm_task(void *arg)
             );
 
             if (state == NORMAL) {
-                xEventGroupClearBits(systemEvents, EVENT_ALARM);
+                xEventGroupClearBits(
+                    systemEvents,
+                    EVENT_ALARM
+                );
             } else {
-                xEventGroupSetBits(systemEvents, EVENT_ALARM);
+                xEventGroupSetBits(
+                    systemEvents,
+                    EVENT_ALARM
+                );
             }
         }
     }
 }
+
+#endif
