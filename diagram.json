@@ -2,6 +2,9 @@
   "version": 1,
   "author": "BCA152",
   "editor": "wokwi",
+  "serialMonitor": {
+    "display": "always"
+  },
   "parts": [
     {
       "type": "wokwi-esp32-devkit-v1",
