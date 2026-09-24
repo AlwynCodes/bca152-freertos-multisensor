@@ -297,8 +297,6 @@ pio check
 
 ## Functional Verification
 
-Functional tests FT-01 through FT-10 are executed manually against the running Wokwi simulation (separate from the automated unit tests above). Record the actual observed results for each in the laboratory report.
-
 | Test ID | Scenario | Expected Result | Observed Result |
 |---|---|---|---|
 | FT-01 | | | |
