@@ -1,7 +1,4 @@
-#ifndef MOTION_H
-#define MOTION_H
+#pragma once 
+#include "motion_logic.h"
 
-void init_motion(void);
-void motion_task(void *arg);
-
-#endif
+void motionTask(void *pvParameters);
