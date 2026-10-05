@@ -1,16 +1,8 @@
-#ifndef ALARM_H
-#define ALARM_H
+#pragma once
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+#include "sensor_data.h"
+#include "temperature_logic.h"
 
-#include "sensors.h"
-
-typedef enum {
-    NORMAL = 0,
-    LOW_TEMPERATURE,
-    HIGH_TEMPERATURE
-} TemperatureAlarmState;
-
-TemperatureAlarmState evaluateTemperature(float temperature);
-void init_alarm(void);
-void alarm_task(void *arg);
-
-#endif
+void alarm_init(QueueHandle_t alarmQueueHandle);
+void AlarmTask(void *pvParameters); 
