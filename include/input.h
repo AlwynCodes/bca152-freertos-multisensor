@@ -1,7 +1,7 @@
-#ifndef INPUT_H
-#define INPUT_H
+#pragma once
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+#include "display_logic.h"
 
-void init_input(void);
-void input_task(void *arg);
-
-#endif
+void input_init(QueueHandle_t modeQueueHandle);
+void InputTask(void *pvParameters);
