@@ -1,7 +1,4 @@
-#ifndef SENSORS_H
-#define SENSORS_H
-
-#include <stdbool.h>
+#pragma once
 
 typedef struct {
     float temperature;
@@ -9,8 +6,3 @@ typedef struct {
     int lightLevel;
     bool motionDetected;
 } SensorData;
-
-void init_sensors(void);
-bool read_sensors(SensorData *data);
-
-#endif
