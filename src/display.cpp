@@ -116,7 +116,7 @@ void display_clear(void)
     }
 }
 
-void display_draw_string(uint8_t page, uint8_t col, const char *str)
+void display_draw_string(uint8_t page, uint8_t c *str)
 {
     set_cursor(page, col);
     while (*str) {
