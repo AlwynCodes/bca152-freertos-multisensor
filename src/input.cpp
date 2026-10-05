@@ -1,48 +1,53 @@
 #include "input.h"
-#include "config.h"
-#include "display.h"
-#include "rtos_objects.h"
-
 #include "driver/gpio.h"
-#include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-void init_input(void)
-{
-    gpio_config_t config = {};
-    config.pin_bit_mask =
-        (1ULL << ENCODER_A_GPIO) |
-        (1ULL << ENCODER_B_GPIO) |
-        (1ULL << ENCODER_BUTTON_GPIO);
-    config.mode = GPIO_MODE_INPUT;
-    config.pull_up_en = GPIO_PULLUP_ENABLE;
-    config.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    config.intr_type = GPIO_INTR_DISABLE;
+#define ENCODER_CLK GPIO_NUM_32
+#define ENCODER_DT  GPIO_NUM_33
 
-    gpio_config(&config);
+static QueueHandle_t encoderQueue;
+static QueueHandle_t modeQueue;
+
+static void IRAM_ATTR encoder_isr_handler(void *arg) {
+    int8_t direction = gpio_get_level(ENCODER_DT) ? 1 : -1;
+    BaseType_t woken = pdFALSE;
+    xQueueSendFromISR(encoderQueue, &direction, &woken);
+    if (woken) portYIELD_FROM_ISR();
 }
 
-void input_task(void *arg)
-{
-    (void)arg;
+static void configure_encoder_gpio(void) {
+    gpio_config_t clk_conf = {};
+    clk_conf.pin_bit_mask = 1ULL << ENCODER_CLK;
+    clk_conf.mode = GPIO_MODE_INPUT;
+    clk_conf.pull_up_en = GPIO_PULLUP_ENABLE;
+    clk_conf.intr_type = GPIO_INTR_NEGEDGE;
+    gpio_config(&clk_conf);
 
-    int previousA =
-        gpio_get_level(static_cast<gpio_num_t>(ENCODER_A_GPIO));
+    gpio_config_t dt_conf = {};
+    dt_conf.pin_bit_mask = 1ULL << ENCODER_DT;
+    dt_conf.mode = GPIO_MODE_INPUT;
+    dt_conf.pull_up_en = GPIO_PULLUP_ENABLE;
+    gpio_config(&dt_conf);
 
-    for (;;) {
-        int currentA =
-            gpio_get_level(static_cast<gpio_num_t>(ENCODER_A_GPIO));
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(ENCODER_CLK, encoder_isr_handler, NULL);
+}
 
-        if (currentA != previousA) {
-            int currentB =
-                gpio_get_level(static_cast<gpio_num_t>(ENCODER_B_GPIO));
+void input_init(QueueHandle_t modeQueueHandle) {
+    modeQueue = modeQueueHandle;
+    encoderQueue = xQueueCreate(10, sizeof(int8_t));
+    configure_encoder_gpio();
+}
 
-            int direction = (currentA == currentB) ? 1 : -1;
-            xQueueSend(inputQueue, &direction, 0);
-
-            previousA = currentA;
+void InputTask(void *pvParameters) {
+    static DisplayMode currentMode = DisplayMode::TEMPERATURE;
+    int8_t direction;
+    while (true) {
+        if (xQueueReceive(encoderQueue, &direction, portMAX_DELAY) == pdTRUE) {
+            currentMode = (direction > 0)
+                ? nextDisplayMode(currentMode)
+                : previousDisplayMode(currentMode);
+            xQueueOverwrite(modeQueue, &currentMode);
         }
-
-        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
